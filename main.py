@@ -1,7 +1,7 @@
 """
 Personal Expense Tracker
 
-Author: Abdullah rashid
+Author: Arashid
 Purpose: Provides the main menu and user interaction for a command-line
 personal expense tracking application.
 Starter Code/Resources: No starter code used. Built from course concepts.
@@ -49,26 +49,17 @@ def get_menu_choice():
 
 
 def get_positive_amount(prompt):
-    """Return a positive monetary amount with at most two decimals."""
+    """Return a positive numeric amount entered by the user."""
     while True:
         amount_text = input(prompt).strip()
 
         try:
             amount = float(amount_text)
 
-            if amount <= 0:
-                print("Amount must be greater than zero.")
-                continue
+            if amount > 0:
+                return amount
 
-            if "." in amount_text:
-                decimal_places = len(amount_text.split(".")[1])
-
-                if decimal_places > 2:
-                    print("Please enter an amount with at most two decimals.")
-                    continue
-
-            return amount
-
+            print("Amount must be greater than zero.")
         except ValueError:
             print("Please enter a valid number, such as 12.50.")
 
@@ -102,13 +93,8 @@ def handle_add_expense(expenses):
         category = input("Category: ").strip().title()
 
     add_expense(expenses, description, amount, category)
+    print("Expense added successfully.")
 
-    print("\nExpense added successfully!")
-    print("-" * 30)
-    print(f"Description: {description}")
-    print(f"Amount:     ${amount:,.2f}")
-    print(f"Category:   {category}")
-    print("-" * 30)
 
 def handle_search(expenses):
     """Search for expenses by description or category."""
@@ -121,15 +107,10 @@ def handle_search(expenses):
         return
 
     matches = find_expenses(expenses, search_term)
-
-    if matches:
-        print(f"\nFound {len(matches)} matching expense(s).")
-        display_expenses(matches)
-    else:
-        print(f'No expenses found for "{search_term}".')
+    display_expenses(matches)
 
 
-def handle_budget():
+def handle_budget(budget):
     """Prompt for a monthly budget and return the updated budget."""
     new_budget = get_positive_amount("Enter monthly budget: $")
     print(f"Monthly budget updated to ${new_budget:,.2f}.")
@@ -144,13 +125,11 @@ def handle_budget_status(expenses, budget):
 
     total = calculate_total(expenses)
     remaining = budget - total
-    percentage_used = (total / budget) * 100
 
     print("\n--- Budget Status ---")
-    print(f"Budget:      ${budget:,.2f}")
-    print(f"Spent:       ${total:,.2f}")
-    print(f"Remaining:   ${remaining:,.2f}")
-    print(f"Budget Used: {percentage_used:.1f}%")
+    print(f"Budget:    ${budget:,.2f}")
+    print(f"Spent:     ${total:,.2f}")
+    print(f"Remaining: ${remaining:,.2f}")
 
     if remaining > 0:
         print(f"You have ${remaining:,.2f} remaining.")
@@ -180,28 +159,13 @@ def handle_remove_expense(expenses):
         index = int(choice) - 1
 
         if 0 <= index < len(expenses):
-            selected_expense = expenses[index]
-
-            print("\nSelected expense:")
-            print(f"Description: {selected_expense['description']}")
-            print(f"Amount:     ${selected_expense['amount']:,.2f}")
-            print(f"Category:   {selected_expense['category']}")
-
-            confirmation = input(
-                "Are you sure you want to remove this expense? (y/n): "
-            ).strip().lower()
-
-            if confirmation == "y":
-                removed = remove_expense(expenses, index)
-                print(
-                    f"Removed: {removed['description']} "
-                    f"(${removed['amount']:.2f})"
-                )
-            else:
-                print("Removal cancelled.")
+            removed = remove_expense(expenses, index)
+            print(
+                f"Removed: {removed['description']} "
+                f"(${removed['amount']:.2f})"
+            )
         else:
             print("That expense number does not exist.")
-
     except ValueError:
         print("Please enter a valid expense number.")
 
@@ -244,7 +208,7 @@ def run_tracker():
             )
 
         elif choice == "6":
-            monthly_budget = handle_budget()
+            monthly_budget = handle_budget(monthly_budget)
 
         elif choice == "7":
             handle_budget_status(expenses, monthly_budget)
