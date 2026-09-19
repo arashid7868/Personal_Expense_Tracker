@@ -136,11 +136,13 @@ def handle_budget_status(expenses, budget):
 
     total = calculate_total(expenses)
     remaining = budget - total
+    percentage_used = (total / budget) * 100
 
     print("\n--- Budget Status ---")
-    print(f"Budget:    ${budget:,.2f}")
-    print(f"Spent:     ${total:,.2f}")
-    print(f"Remaining: ${remaining:,.2f}")
+    print(f"Budget:      ${budget:,.2f}")
+    print(f"Spent:       ${total:,.2f}")
+    print(f"Remaining:   ${remaining:,.2f}")
+    print(f"Budget Used: {percentage_used:.1f}%")
 
     if remaining > 0:
         print(f"You have ${remaining:,.2f} remaining.")
@@ -148,7 +150,6 @@ def handle_budget_status(expenses, budget):
         print("You have reached your monthly budget exactly.")
     else:
         print(f"You are ${abs(remaining):,.2f} over budget.")
-
 
 def handle_remove_expense(expenses):
     """Remove an expense selected by its displayed number."""
