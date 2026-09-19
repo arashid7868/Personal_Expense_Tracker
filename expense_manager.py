@@ -80,7 +80,7 @@ def category_summary(expenses):
     )
 
     return sorted_summary
-
+    
 
 def get_budget_status(expenses, budget):
     """Return the amount remaining after subtracting spending from a budget."""
