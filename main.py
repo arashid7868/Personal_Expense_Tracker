@@ -49,17 +49,26 @@ def get_menu_choice():
 
 
 def get_positive_amount(prompt):
-    """Return a positive numeric amount entered by the user."""
+    """Return a positive monetary amount with at most two decimals."""
     while True:
         amount_text = input(prompt).strip()
 
         try:
             amount = float(amount_text)
 
-            if amount > 0:
-                return amount
+            if amount <= 0:
+                print("Amount must be greater than zero.")
+                continue
 
-            print("Amount must be greater than zero.")
+            if "." in amount_text:
+                decimal_places = len(amount_text.split(".")[1])
+
+                if decimal_places > 2:
+                    print("Please enter an amount with at most two decimals.")
+                    continue
+
+            return amount
+
         except ValueError:
             print("Please enter a valid number, such as 12.50.")
 
