@@ -171,13 +171,28 @@ def handle_remove_expense(expenses):
         index = int(choice) - 1
 
         if 0 <= index < len(expenses):
-            removed = remove_expense(expenses, index)
-            print(
-                f"Removed: {removed['description']} "
-                f"(${removed['amount']:.2f})"
-            )
+            selected_expense = expenses[index]
+
+            print("\nSelected expense:")
+            print(f"Description: {selected_expense['description']}")
+            print(f"Amount:     ${selected_expense['amount']:,.2f}")
+            print(f"Category:   {selected_expense['category']}")
+
+            confirmation = input(
+                "Are you sure you want to remove this expense? (y/n): "
+            ).strip().lower()
+
+            if confirmation == "y":
+                removed = remove_expense(expenses, index)
+                print(
+                    f"Removed: {removed['description']} "
+                    f"(${removed['amount']:.2f})"
+                )
+            else:
+                print("Removal cancelled.")
         else:
             print("That expense number does not exist.")
+
     except ValueError:
         print("Please enter a valid expense number.")
 
