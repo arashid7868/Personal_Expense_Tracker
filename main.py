@@ -93,7 +93,13 @@ def handle_add_expense(expenses):
         category = input("Category: ").strip().title()
 
     add_expense(expenses, description, amount, category)
-    print("Expense added successfully.")
+
+print("\nExpense added successfully!")
+print("-" * 30)
+print(f"Description: {description}")
+print(f"Amount:     ${amount:,.2f}")
+print(f"Category:   {category}")
+print("-" * 30)
 
 
 def handle_search(expenses):
