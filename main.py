@@ -130,7 +130,7 @@ def handle_search(expenses):
         print(f'No expenses found for "{search_term}".')
 
 
-def handle_budget(budget):
+def handle_budget():
     """Prompt for a monthly budget and return the updated budget."""
     new_budget = get_positive_amount("Enter monthly budget: $")
     print(f"Monthly budget updated to ${new_budget:,.2f}.")
@@ -244,7 +244,7 @@ def run_tracker():
             )
 
         elif choice == "6":
-            monthly_budget = handle_budget(monthly_budget)
+            monthly_budget = handle_budget()
 
         elif choice == "7":
             handle_budget_status(expenses, monthly_budget)
