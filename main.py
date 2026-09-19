@@ -113,7 +113,12 @@ def handle_search(expenses):
         return
 
     matches = find_expenses(expenses, search_term)
-    display_expenses(matches)
+
+    if matches:
+        print(f"\nFound {len(matches)} matching expense(s).")
+        display_expenses(matches)
+    else:
+        print(f'No expenses found for "{search_term}".')
 
 
 def handle_budget(budget):
