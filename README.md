@@ -1,6 +1,6 @@
 # Personal_Expense_Tracker
 ## Video Presentation
-YouTube: [link]
+YouTube: [https://youtu.be/oWHS23jp9g8?si=1GPvD57FPWicN5XQ]
 
 ## Project Overview
 Personal Expense Tracker is a command-line Python application for recording,
