@@ -1,12 +1,13 @@
-"""
-Personal Expense Tracker
 
+"""
+Program: Personal Expense Tracker
 Author: Arashid
 Purpose: Provides the main menu and user interaction for a command-line
 personal expense tracking application.
-Starter Code/Resources: No starter code used. Built from course concepts.
-Date: September 17, 2026
+Starter Code/Resources: Built from course concepts; no external starter code.
+Date: October 24, 2026
 """
+
 
 from expense_manager import (
     add_expense,
@@ -49,7 +50,7 @@ def get_menu_choice():
 
 
 def get_positive_amount(prompt):
-    """Return a positive monetary amount with at most two decimals."""
+    """Return a positive monetary amount with at most two decimal places."""
     while True:
         amount_text = input(prompt).strip()
 
@@ -94,14 +95,14 @@ def handle_add_expense(expenses):
     )
 
     print("Categories:", ", ".join(categories))
-
     category = input("Category: ").strip().title()
 
     while category not in categories:
         print("Please choose one of the listed categories.")
         category = input("Category: ").strip().title()
 
-     add_expense(expenses, description, amount, category)
+    # Add the expense after the category has been validated.
+    add_expense(expenses, description, amount, category)
 
     print("\nExpense added successfully!")
     print("-" * 30)
@@ -159,6 +160,7 @@ def handle_budget_status(expenses, budget):
         print("You have reached your monthly budget exactly.")
     else:
         print(f"You are ${abs(remaining):,.2f} over budget.")
+
 
 def handle_remove_expense(expenses):
     """Remove an expense selected by its displayed number."""
@@ -219,10 +221,13 @@ def run_tracker():
 
         if choice == "1":
             handle_add_expense(expenses)
+
         elif choice == "2":
             display_expenses(expenses)
+
         elif choice == "3":
             handle_search(expenses)
+
         elif choice == "4":
             summary = category_summary(expenses)
 
@@ -232,10 +237,7 @@ def run_tracker():
                 print("\n--- Spending by Category ---")
 
                 for category, amount in summary.items():
-                    print(
-                        f"{category:<18} "
-                        f"${amount:>10,.2f}"
-                    )
+                    print(f"{category:<18} ${amount:>10,.2f}")
 
         elif choice == "5":
             print(
@@ -254,8 +256,7 @@ def run_tracker():
 
         elif choice == "9":
             print(
-                "Thank you for using Personal Expense Tracker. "
-                "Goodbye!"
+                "Thank you for using Personal Expense Tracker. Goodbye!"
             )
             break
 
