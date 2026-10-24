@@ -2,8 +2,8 @@
 """
 Program: Personal Expense Tracker - JSON Storage
 Author: Arashid
-Purpose: Load and save expenses and the monthly budget using JSON.
-Starter Code/Resources: Built from course concepts; Python standard library.
+Purpose: Validate and persist expense objects and the monthly budget.
+Starter Code/Resources: Existing Personal Expense Tracker and Python standard library.
 Date: October 24, 2026
 """
 
@@ -11,23 +11,25 @@ import json
 import math
 from pathlib import Path
 
+from models import Expense
+
 
 DATA_FILE = Path(__file__).resolve().parent / "data" / "expenses.json"
 
 
 class DataStorageError(Exception):
-    """Represent an error reading or writing expense data."""
+    """Represent an error while reading or writing saved expense data."""
 
 
 def _validate_data(data):
-    """Validate the structure and values loaded from the JSON file."""
+    """Validate saved JSON data and convert records into expense objects."""
     if not isinstance(data, dict):
         raise DataStorageError("The saved data must be a JSON object.")
 
-    expenses = data.get("expenses", [])
+    records = data.get("expenses", [])
     budget = data.get("monthly_budget")
 
-    if not isinstance(expenses, list):
+    if not isinstance(records, list):
         raise DataStorageError("The saved expenses must be a list.")
 
     if budget is not None:
@@ -39,51 +41,21 @@ def _validate_data(data):
         ):
             raise DataStorageError("The saved monthly budget is invalid.")
 
-    validated_expenses = []
+    expenses = []
 
-    for number, expense in enumerate(expenses, start=1):
-        if not isinstance(expense, dict):
+    for number, record in enumerate(records, start=1):
+        try:
+            expenses.append(Expense.from_dict(record))
+        except (ValueError, TypeError, KeyError) as error:
             raise DataStorageError(
-                f"Saved expense {number} must be a JSON object."
-            )
+                f"Saved expense {number} is invalid: {error}"
+            ) from error
 
-        description = expense.get("description")
-        amount = expense.get("amount")
-        category = expense.get("category")
-
-        if not isinstance(description, str) or not description.strip():
-            raise DataStorageError(
-                f"Saved expense {number} has an invalid description."
-            )
-
-        if (
-            isinstance(amount, bool)
-            or not isinstance(amount, (int, float))
-            or not math.isfinite(amount)
-            or amount <= 0
-        ):
-            raise DataStorageError(
-                f"Saved expense {number} has an invalid amount."
-            )
-
-        if not isinstance(category, str) or not category.strip():
-            raise DataStorageError(
-                f"Saved expense {number} has an invalid category."
-            )
-
-        validated_expenses.append(
-            {
-                "description": description,
-                "amount": float(amount),
-                "category": category,
-            }
-        )
-
-    return validated_expenses, budget
+    return expenses, budget
 
 
 def load_data(file_path=DATA_FILE):
-    """Load expenses and budget from JSON, returning empty defaults if absent."""
+    """Load expense objects and budget, or return empty defaults if absent."""
     path = Path(file_path)
 
     if not path.exists():
@@ -105,20 +77,18 @@ def load_data(file_path=DATA_FILE):
 
 
 def save_data(expenses, monthly_budget, file_path=DATA_FILE):
-    """Validate and save expenses and budget using an atomic file replacement."""
+    """Validate and save expense objects using an atomic file replacement."""
     path = Path(file_path)
     temporary_path = path.with_suffix(path.suffix + ".tmp")
 
-    data = {
-        "version": 1,
-        "monthly_budget": monthly_budget,
-        "expenses": expenses,
-    }
-
     try:
-        # Validate the data before writing it to disk.
-        _validate_data(data)
+        data = {
+            "version": 1,
+            "monthly_budget": monthly_budget,
+            "expenses": [expense.to_dict() for expense in expenses],
+        }
 
+        _validate_data(data)
         path.parent.mkdir(parents=True, exist_ok=True)
 
         with temporary_path.open("w", encoding="utf-8") as file:

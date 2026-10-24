@@ -1,61 +1,60 @@
+
 """
-Personal Expense Tracker - Expense Management
-
-Author: Abdullah rashid 
-Purpose: Contains reusable functions for creating, displaying, searching,
-summarizing, calculating, and removing expense records.
-Starter Code/Resources: No starter code used. Built from course concepts.
-Date: September 17, 2026
+Program: Personal Expense Tracker - Expense Management
+Author: Arashid
+Purpose: Manage expense objects, calculations, searches, and category totals.
+Starter Code/Resources: Existing Personal Expense Tracker and course concepts.
+Date: October 24, 2026
 """
 
+from models import Expense, RecurringExpense
 
-def add_expense(expenses, description, amount, category):
-    """Add one expense dictionary to the expense list."""
-    expense = {
-        "description": description,
-        "amount": amount,
-        "category": category,
-    }
+
+def add_expense(
+    expenses, description, amount, category, recurring_frequency=None
+):
+    """Create an expense object, append it, and return it."""
+    if recurring_frequency is None:
+        expense = Expense(description, amount, category)
+    else:
+        expense = RecurringExpense(
+            description, amount, category, recurring_frequency
+        )
+
     expenses.append(expense)
+    return expense
 
 
 def display_expenses(expenses):
-    """Display expense records in a numbered, readable format."""
+    """Display expense objects in a numbered, readable format."""
     if not expenses:
         print("\nNo expenses recorded yet.")
         return
 
     print("\n--- Expense List ---")
+
     for number, expense in enumerate(expenses, start=1):
-        print(
-            f"{number}. {expense['description']} | "
-            f"{expense['category']} | ${expense['amount']:,.2f}"
-        )
+        print(f"{number}. {expense}")
 
 
 def calculate_total(expenses):
-    """Return the sum of all expense amounts."""
-    total = 0.0
-
-    for expense in expenses:
-        total += expense["amount"]
-
-    return total
+    """Return the sum of the amounts of all expense objects."""
+    return sum(expense.amount for expense in expenses)
 
 
 def find_expenses(expenses, search_term):
-    """Return expenses whose description or category matches the search term."""
-    matches = []
-    search_term = search_term.lower()
+    """Return expenses matching a description or category search."""
+    normalized_term = search_term.strip().casefold()
 
-    for expense in expenses:
-        description = expense["description"].lower()
-        category = expense["category"].lower()
+    if not normalized_term:
+        return []
 
-        if search_term in description or search_term in category:
-            matches.append(expense)
-
-    return matches
+    return [
+        expense
+        for expense in expenses
+        if normalized_term in expense.description.casefold()
+        or normalized_term in expense.category.casefold()
+    ]
 
 
 def category_summary(expenses):
@@ -63,27 +62,17 @@ def category_summary(expenses):
     summary = {}
 
     for expense in expenses:
-        category = expense["category"]
-        amount = expense["amount"]
-
-        if category in summary:
-            summary[category] += amount
-        else:
-            summary[category] = amount
-
-    sorted_summary = dict(
-        sorted(
-            summary.items(),
-            key=lambda item: item[1],
-            reverse=True,
+        summary[expense.category] = (
+            summary.get(expense.category, 0.0) + expense.amount
         )
+
+    return dict(
+        sorted(summary.items(), key=lambda item: item[1], reverse=True)
     )
 
-    return sorted_summary
-    
 
 def get_budget_status(expenses, budget):
-    """Return the amount remaining after subtracting spending from a budget."""
+    """Return the amount remaining after subtracting spending from budget."""
     if budget is None:
         return None
 
@@ -92,4 +81,10 @@ def get_budget_status(expenses, budget):
 
 def remove_expense(expenses, index):
     """Remove and return the expense at the supplied zero-based index."""
+    if not isinstance(index, int) or isinstance(index, bool):
+        raise TypeError("Expense index must be an integer.")
+
+    if not 0 <= index < len(expenses):
+        raise IndexError("Expense index is outside the expense list.")
+
     return expenses.pop(index)

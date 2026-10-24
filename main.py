@@ -2,8 +2,8 @@
 """
 Program: Personal Expense Tracker
 Author: Arashid
-Purpose: Provide a command-line interface for managing expenses and budgets,
-with persistent JSON storage across application restarts.
+Purpose: Provide a command-line interface for managing one-time and recurring
+expenses, monthly budgets, and persistent JSON data.
 Starter Code/Resources: Existing Personal Expense Tracker and course concepts.
 Date: October 24, 2026
 """
@@ -16,8 +16,10 @@ from expense_manager import (
     category_summary,
     display_expenses,
     find_expenses,
+    get_budget_status,
     remove_expense,
 )
+from models import RecurringExpense
 from storage import DataStorageError, load_data, save_data
 
 
@@ -30,12 +32,14 @@ CATEGORIES = (
     "Other",
 )
 
+FREQUENCIES = RecurringExpense.VALID_FREQUENCIES
+
 
 def display_menu():
-    """Display the application's main menu."""
-    print("\n" + "=" * 42)
-    print("         PERSONAL EXPENSE TRACKER")
-    print("=" * 42)
+    """Display all available application operations."""
+    print("\n" + "=" * 44)
+    print("          PERSONAL EXPENSE TRACKER")
+    print("=" * 44)
     print("1. Add expense")
     print("2. View all expenses")
     print("3. Search expenses")
@@ -44,21 +48,22 @@ def display_menu():
     print("6. Set or update monthly budget")
     print("7. Check budget status")
     print("8. Remove an expense")
-    print("9. Exit")
-    print("=" * 42)
+    print("9. Add recurring expense")
+    print("10. Exit")
+    print("=" * 44)
 
 
 def get_menu_choice():
-    """Return a valid menu choice entered by the user."""
-    valid_choices = tuple(str(number) for number in range(1, 10))
+    """Return a valid menu choice from 1 through 10."""
+    valid_choices = {str(number) for number in range(1, 11)}
 
     while True:
-        choice = input("Enter your choice (1-9): ").strip()
+        choice = input("Enter your choice (1-10): ").strip()
 
         if choice in valid_choices:
             return choice
 
-        print("Invalid choice. Please enter a number from 1 to 9.")
+        print("Invalid choice. Please enter a number from 1 to 10.")
 
 
 def get_positive_amount(prompt):
@@ -91,9 +96,10 @@ def get_positive_amount(prompt):
 
 
 def persist_changes(expenses, monthly_budget):
-    """Save current expenses and budget, reporting any storage error."""
+    """Save current application data and report storage errors."""
     try:
         save_data(expenses, monthly_budget)
+        print("Your data has been saved successfully.")
         return True
     except DataStorageError as error:
         print(f"\nWARNING: Your changes could not be saved.\n{error}")
@@ -101,17 +107,19 @@ def persist_changes(expenses, monthly_budget):
         return False
 
 
-def handle_add_expense(expenses):
-    """Collect, validate, and add a new expense."""
-    print("\n--- Add Expense ---")
+def get_description():
+    """Prompt until a non-empty expense description is supplied."""
     description = input("Description: ").strip()
 
     while not description:
         print("Description cannot be empty.")
         description = input("Description: ").strip()
 
-    amount = get_positive_amount("Amount: $")
+    return description
 
+
+def get_category():
+    """Prompt until the user selects a valid expense category."""
     print("Categories:", ", ".join(CATEGORIES))
     category = input("Category: ").strip().title()
 
@@ -119,18 +127,44 @@ def handle_add_expense(expenses):
         print("Please choose one of the listed categories.")
         category = input("Category: ").strip().title()
 
-    add_expense(expenses, description, amount, category)
+    return category
+
+
+def handle_add_expense(expenses, recurring_frequency=None):
+    """Collect and add either a one-time or recurring expense."""
+    description = get_description()
+    amount = get_positive_amount("Amount: $")
+    category = get_category()
+
+    expense = add_expense(
+        expenses,
+        description,
+        amount,
+        category,
+        recurring_frequency=recurring_frequency,
+    )
 
     print("\nExpense added successfully!")
-    print(f"Description: {description}")
-    print(f"Amount: ${amount:,.2f}")
-    print(f"Category: {category}")
-
+    print(expense)
     return True
 
 
+def handle_add_recurring_expense(expenses):
+    """Collect details and add a recurring expense."""
+    print("\n--- Add Recurring Expense ---")
+    print("Frequencies:", ", ".join(FREQUENCIES))
+
+    frequency = input("Frequency: ").strip().lower()
+
+    while frequency not in FREQUENCIES:
+        print("Choose weekly, monthly, or yearly.")
+        frequency = input("Frequency: ").strip().lower()
+
+    return handle_add_expense(expenses, recurring_frequency=frequency)
+
+
 def handle_search(expenses):
-    """Search for expenses by description or category."""
+    """Search expense descriptions and categories."""
     search_term = input(
         "Enter a description or category to search: "
     ).strip()
@@ -149,20 +183,21 @@ def handle_search(expenses):
 
 
 def handle_budget():
-    """Prompt for and return a new monthly budget."""
+    """Collect and return a positive monthly budget."""
     budget = get_positive_amount("Enter monthly budget: $")
     print(f"Monthly budget updated to ${budget:,.2f}.")
     return budget
 
 
 def handle_budget_status(expenses, budget):
-    """Display current spending and monthly budget status."""
-    if budget is None:
+    """Display the current spending and budget status."""
+    remaining = get_budget_status(expenses, budget)
+
+    if remaining is None:
         print("No monthly budget has been set.")
         return
 
     total = calculate_total(expenses)
-    remaining = budget - total
     percentage_used = total / budget * 100
 
     print("\n--- Budget Status ---")
@@ -180,13 +215,12 @@ def handle_budget_status(expenses, budget):
 
 
 def handle_remove_expense(expenses):
-    """Remove an expense after validating its number and confirmation."""
+    """Remove an expense only after validating and confirming selection."""
     if not expenses:
         print("There are no expenses to remove.")
         return False
 
     display_expenses(expenses)
-
     choice = input(
         "Enter the expense number to remove, or press Enter to cancel: "
     ).strip()
@@ -206,11 +240,7 @@ def handle_remove_expense(expenses):
         return False
 
     selected = expenses[index]
-
-    print("\nSelected expense:")
-    print(f"Description: {selected['description']}")
-    print(f"Amount: ${selected['amount']:,.2f}")
-    print(f"Category: {selected['category']}")
+    print(f"\nSelected expense: {selected}")
 
     confirmation = input(
         "Are you sure you want to remove this expense? (y/n): "
@@ -221,20 +251,18 @@ def handle_remove_expense(expenses):
         return False
 
     removed = remove_expense(expenses, index)
-    print(f"Removed: {removed['description']} (${removed['amount']:.2f})")
+    print(f"Removed: {removed}")
     return True
 
 
 def run_tracker():
-    """Load saved data and run the expense tracker menu."""
+    """Load saved data and run the application menu."""
     try:
         expenses, monthly_budget = load_data()
     except DataStorageError as error:
         print("\nUnable to load saved expense data.")
         print(error)
-        print(
-            "The application will exit without overwriting the saved file."
-        )
+        print("The application will exit without overwriting the saved file.")
         return
 
     print("Welcome to Personal Expense Tracker!")
@@ -278,12 +306,14 @@ def run_tracker():
             changed = handle_remove_expense(expenses)
 
         elif choice == "9":
+            changed = handle_add_recurring_expense(expenses)
+
+        elif choice == "10":
             print("Thank you for using Personal Expense Tracker. Goodbye!")
             break
 
         if changed:
-            if persist_changes(expenses, monthly_budget):
-                print("Your data has been saved successfully.")
+            persist_changes(expenses, monthly_budget)
 
 
 if __name__ == "__main__":
