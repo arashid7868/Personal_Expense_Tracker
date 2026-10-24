@@ -2,12 +2,13 @@
 """
 Program: Personal Expense Tracker
 Author: Arashid
-Purpose: Provides the main menu and user interaction for a command-line
-personal expense tracking application.
-Starter Code/Resources: Built from course concepts; no external starter code.
+Purpose: Provide a command-line interface for managing expenses and budgets,
+with persistent JSON storage across application restarts.
+Starter Code/Resources: Existing Personal Expense Tracker and course concepts.
 Date: October 24, 2026
 """
 
+import math
 
 from expense_manager import (
     add_expense,
@@ -16,6 +17,17 @@ from expense_manager import (
     display_expenses,
     find_expenses,
     remove_expense,
+)
+from storage import DataStorageError, load_data, save_data
+
+
+CATEGORIES = (
+    "Food",
+    "Transportation",
+    "Housing",
+    "Entertainment",
+    "Health",
+    "Other",
 )
 
 
@@ -38,7 +50,7 @@ def display_menu():
 
 def get_menu_choice():
     """Return a valid menu choice entered by the user."""
-    valid_choices = ("1", "2", "3", "4", "5", "6", "7", "8", "9")
+    valid_choices = tuple(str(number) for number in range(1, 10))
 
     while True:
         choice = input("Enter your choice (1-9): ").strip()
@@ -50,21 +62,25 @@ def get_menu_choice():
 
 
 def get_positive_amount(prompt):
-    """Return a positive monetary amount with at most two decimal places."""
+    """Return a finite positive amount with at most two decimal places."""
     while True:
         amount_text = input(prompt).strip()
 
         try:
             amount = float(amount_text)
 
+            if not math.isfinite(amount):
+                print("Please enter a finite monetary amount.")
+                continue
+
             if amount <= 0:
                 print("Amount must be greater than zero.")
                 continue
 
             if "." in amount_text:
-                decimal_places = len(amount_text.split(".")[1])
+                decimal_part = amount_text.split(".", maxsplit=1)[1]
 
-                if decimal_places > 2:
+                if not decimal_part.isdigit() or len(decimal_part) > 2:
                     print("Please enter an amount with at most two decimals.")
                     continue
 
@@ -74,8 +90,19 @@ def get_positive_amount(prompt):
             print("Please enter a valid number, such as 12.50.")
 
 
+def persist_changes(expenses, monthly_budget):
+    """Save current expenses and budget, reporting any storage error."""
+    try:
+        save_data(expenses, monthly_budget)
+        return True
+    except DataStorageError as error:
+        print(f"\nWARNING: Your changes could not be saved.\n{error}")
+        print("These changes may be lost when the application exits.")
+        return False
+
+
 def handle_add_expense(expenses):
-    """Collect expense details and add a new expense."""
+    """Collect, validate, and add a new expense."""
     print("\n--- Add Expense ---")
     description = input("Description: ").strip()
 
@@ -85,31 +112,21 @@ def handle_add_expense(expenses):
 
     amount = get_positive_amount("Amount: $")
 
-    categories = (
-        "Food",
-        "Transportation",
-        "Housing",
-        "Entertainment",
-        "Health",
-        "Other",
-    )
-
-    print("Categories:", ", ".join(categories))
+    print("Categories:", ", ".join(CATEGORIES))
     category = input("Category: ").strip().title()
 
-    while category not in categories:
+    while category not in CATEGORIES:
         print("Please choose one of the listed categories.")
         category = input("Category: ").strip().title()
 
-    # Add the expense after the category has been validated.
     add_expense(expenses, description, amount, category)
 
     print("\nExpense added successfully!")
-    print("-" * 30)
     print(f"Description: {description}")
-    print(f"Amount:     ${amount:,.2f}")
-    print(f"Category:   {category}")
-    print("-" * 30)
+    print(f"Amount: ${amount:,.2f}")
+    print(f"Category: {category}")
+
+    return True
 
 
 def handle_search(expenses):
@@ -132,21 +149,21 @@ def handle_search(expenses):
 
 
 def handle_budget():
-    """Prompt for a monthly budget and return the updated budget."""
-    new_budget = get_positive_amount("Enter monthly budget: $")
-    print(f"Monthly budget updated to ${new_budget:,.2f}.")
-    return new_budget
+    """Prompt for and return a new monthly budget."""
+    budget = get_positive_amount("Enter monthly budget: $")
+    print(f"Monthly budget updated to ${budget:,.2f}.")
+    return budget
 
 
 def handle_budget_status(expenses, budget):
-    """Display current spending and budget status."""
+    """Display current spending and monthly budget status."""
     if budget is None:
         print("No monthly budget has been set.")
         return
 
     total = calculate_total(expenses)
     remaining = budget - total
-    percentage_used = (total / budget) * 100
+    percentage_used = total / budget * 100
 
     print("\n--- Budget Status ---")
     print(f"Budget:      ${budget:,.2f}")
@@ -163,10 +180,10 @@ def handle_budget_status(expenses, budget):
 
 
 def handle_remove_expense(expenses):
-    """Remove an expense selected by its displayed number."""
+    """Remove an expense after validating its number and confirmation."""
     if not expenses:
         print("There are no expenses to remove.")
-        return
+        return False
 
     display_expenses(expenses)
 
@@ -176,51 +193,60 @@ def handle_remove_expense(expenses):
 
     if not choice:
         print("Removal cancelled.")
-        return
+        return False
 
     try:
         index = int(choice) - 1
-
-        if 0 <= index < len(expenses):
-            selected_expense = expenses[index]
-
-            print("\nSelected expense:")
-            print(f"Description: {selected_expense['description']}")
-            print(f"Amount:     ${selected_expense['amount']:,.2f}")
-            print(f"Category:   {selected_expense['category']}")
-
-            confirmation = input(
-                "Are you sure you want to remove this expense? (y/n): "
-            ).strip().lower()
-
-            if confirmation == "y":
-                removed = remove_expense(expenses, index)
-                print(
-                    f"Removed: {removed['description']} "
-                    f"(${removed['amount']:.2f})"
-                )
-            else:
-                print("Removal cancelled.")
-        else:
-            print("That expense number does not exist.")
-
     except ValueError:
         print("Please enter a valid expense number.")
+        return False
+
+    if not 0 <= index < len(expenses):
+        print("That expense number does not exist.")
+        return False
+
+    selected = expenses[index]
+
+    print("\nSelected expense:")
+    print(f"Description: {selected['description']}")
+    print(f"Amount: ${selected['amount']:,.2f}")
+    print(f"Category: {selected['category']}")
+
+    confirmation = input(
+        "Are you sure you want to remove this expense? (y/n): "
+    ).strip().lower()
+
+    if confirmation != "y":
+        print("Removal cancelled.")
+        return False
+
+    removed = remove_expense(expenses, index)
+    print(f"Removed: {removed['description']} (${removed['amount']:.2f})")
+    return True
 
 
 def run_tracker():
-    """Run the main application loop until the user chooses Exit."""
-    expenses = []
-    monthly_budget = None
+    """Load saved data and run the expense tracker menu."""
+    try:
+        expenses, monthly_budget = load_data()
+    except DataStorageError as error:
+        print("\nUnable to load saved expense data.")
+        print(error)
+        print(
+            "The application will exit without overwriting the saved file."
+        )
+        return
 
     print("Welcome to Personal Expense Tracker!")
+    print(f"Loaded {len(expenses)} saved expense(s).")
 
     while True:
         display_menu()
         choice = get_menu_choice()
+        changed = False
 
         if choice == "1":
-            handle_add_expense(expenses)
+            changed = handle_add_expense(expenses)
 
         elif choice == "2":
             display_expenses(expenses)
@@ -235,30 +261,29 @@ def run_tracker():
                 print("No expenses recorded yet.")
             else:
                 print("\n--- Spending by Category ---")
-
                 for category, amount in summary.items():
                     print(f"{category:<18} ${amount:>10,.2f}")
 
         elif choice == "5":
-            print(
-                f"Total spending: "
-                f"${calculate_total(expenses):,.2f}"
-            )
+            print(f"Total spending: ${calculate_total(expenses):,.2f}")
 
         elif choice == "6":
             monthly_budget = handle_budget()
+            changed = True
 
         elif choice == "7":
             handle_budget_status(expenses, monthly_budget)
 
         elif choice == "8":
-            handle_remove_expense(expenses)
+            changed = handle_remove_expense(expenses)
 
         elif choice == "9":
-            print(
-                "Thank you for using Personal Expense Tracker. Goodbye!"
-            )
+            print("Thank you for using Personal Expense Tracker. Goodbye!")
             break
+
+        if changed:
+            if persist_changes(expenses, monthly_budget):
+                print("Your data has been saved successfully.")
 
 
 if __name__ == "__main__":
