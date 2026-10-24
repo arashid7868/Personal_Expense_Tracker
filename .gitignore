@@ -1,54 +1,41 @@
 
-# Python bytecode and cache
+# Python bytecode and cache files
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Virtual environments
+# Python virtual environments
 .venv/
 venv/
 env/
 ENV/
 
-# Local environment and secrets
-.env
-.env.*
-!.env.example
-
-# Local expense data: never publish personal financial records
-/data/expenses.json
-/data/expenses.json.tmp
-
-# Test and coverage artifacts
+# Pytest cache and test artifacts
 .pytest_cache/
 .coverage
 .coverage.*
 htmlcov/
-coverage.xml
-*.cover
-.hypothesis/
+junit.xml
 
-# Type checking and linting caches
-.mypy_cache/
-.dmypy.json
-dmypy.json
-.pyre/
-.pytype/
-.ruff_cache/
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
 
-# Build and distribution artifacts
-build/
-dist/
-*.egg-info/
-.eggs/
-wheels/
+# IDE and editor settings
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
 
 # Logs and temporary files
 *.log
-tempCodeRunnerFile.py
+*.tmp
+*.bak
 
-# Editor and operating-system files
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
+# Local expense data
+data/expenses.json
+data/*.tmp
